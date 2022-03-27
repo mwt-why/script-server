@@ -13,8 +13,9 @@
     <artifactId>script</artifactId>
     <version>1.0.0</version>
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
+        <compiler.source>8</compiler.source>
+        <compiler.target>8</compiler.target>
+        <encoding>UTF-8</encoding>
     </properties>
 
     <dependencies>
@@ -76,6 +77,16 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${compiler.source}</source>
+                    <source>${compiler.target}</source>
+                    <target>1.8</target>
+                    <encoding>${encoding}</encoding>
+                </configuration>
             </plugin>
         </plugins>
     </build>
