@@ -1,0 +1,1 @@
+{"version":3,"sources":["webpack://src/style/css/main.css"],"names":[],"mappings":"AAAA,WACI,WAAY,CACZ,UAAW,CACX,eACJ,CACA,OACI,UACJ","file":"main.a500407a.chunk.css","sourcesContent":[".container{\n    height: 100%;\n    width: 100%;\n    background: #fff;\n}\n.table{\n    height: 90%;\n}\n\n  "]}
