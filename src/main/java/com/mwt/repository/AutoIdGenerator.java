@@ -18,8 +18,8 @@ public class AutoIdGenerator {
     @Resource
     private MongoTemplate mongoTemplate;
 
-    @Value("${spring.data.mongodb.database}")
-    private String collection;
+//    @Value("${spring.data.mongodb.database}")
+    private String collection = "ps2";
 
     public int getNextSeq(Class<? extends Seq> clazz) {
         Seq seq = mongoTemplate.findAndModify(

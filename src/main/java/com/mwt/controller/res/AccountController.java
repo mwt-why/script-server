@@ -3,6 +3,7 @@ package com.mwt.controller.res;
 import com.mwt.beans.res.Account;
 import com.mwt.result.ApiUtil;
 import com.mwt.service.res.AccountService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping(value = "/res/account")
+@Slf4j
 public class AccountController {
 
     @Resource

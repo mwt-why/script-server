@@ -18,4 +18,5 @@ public class Result<T> {
     private String message;
 
     private T data;
+
 }

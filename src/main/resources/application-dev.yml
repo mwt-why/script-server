@@ -14,3 +14,4 @@ spring:
     mongodb:
       database: ps2
       uri: mongodb://localhost:27017
+
