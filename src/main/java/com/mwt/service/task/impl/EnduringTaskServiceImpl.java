@@ -12,6 +12,8 @@ import com.mwt.repository.AutoIdGenerator;
 import com.mwt.repository.task.EnduringTaskRepository;
 import com.mwt.service.task.EnduringTaskService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -59,6 +61,7 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
     public int registerDevice(Device device) {
         int nextSeq = autoIdGenerator.getNextSeq(DevSeq.class);
         device.setId(nextSeq);
+        device.setLastUpdateTime(LocalDateTime.now());
         mongoTemplate.save(device);
         return nextSeq;
     }
@@ -431,5 +434,25 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
             teamQueue.add(id);
         }
         return 9;   //表示是一个队员
+    }
+
+    @Override
+    public void add(EnduringTask bean) {
+
+    }
+
+    @Override
+    public void update(EnduringTask bean) {
+
+    }
+
+    @Override
+    public void delete(String id) {
+
+    }
+
+    @Override
+    public Page<EnduringTask> list(Pageable pageable) {
+        return enduringTaskRepository.findAll(pageable);
     }
 }

@@ -20,6 +20,6 @@ public class DeviceController {
     @GetMapping
     public Object list(@RequestParam int page,
                        @RequestParam int size) {
-        return ApiUtil.success(deviceService.list(PageRequest.of(page, size)));
+        return ApiUtil.success(deviceService.list(PageRequest.of(page - 1, size)));
     }
 }

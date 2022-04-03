@@ -36,7 +36,7 @@ public class AccountController {
     @GetMapping
     public Object list(@RequestParam int page,
                        @RequestParam int size) {
-        Page<Account> accounts = accountService.list(PageRequest.of(page, size));
+        Page<Account> accounts = accountService.list(PageRequest.of(page - 1, size));
         return ApiUtil.success(accounts);
     }
 

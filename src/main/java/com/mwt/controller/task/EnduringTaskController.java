@@ -5,6 +5,9 @@ import com.mwt.beans.res.Device;
 import com.mwt.beans.task.EnduringTask;
 import com.mwt.result.ApiUtil;
 import com.mwt.service.task.EnduringTaskService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -18,6 +21,11 @@ public class EnduringTaskController {
     private EnduringTaskService enduringTask;
 
     @GetMapping
+    public Object list(@RequestParam int page, @RequestParam int size) {
+        return ApiUtil.success(enduringTask.list(PageRequest.of(page - 1, size, Sort.by("deviceId"))));
+    }
+
+    @GetMapping("/getEnduringTaskDeviceId")
     public Object getEnduringTask(@RequestParam String deviceId) {
         EnduringTask task = enduringTask.getTask(deviceId);
         return ApiUtil.success(task);

@@ -4,10 +4,11 @@ package com.mwt.service.task;
 import com.mwt.beans.comm.SimpleMap;
 import com.mwt.beans.res.Device;
 import com.mwt.beans.task.EnduringTask;
+import com.mwt.service.IService;
 
 import java.util.List;
 
-public interface EnduringTaskService {
+public interface EnduringTaskService extends IService<EnduringTask> {
 
     int registerDevice(Device device);
 
