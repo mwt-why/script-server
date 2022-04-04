@@ -1,6 +1,7 @@
 package com.mwt.service.task.impl;
 
 import com.mwt.beans.task.Leader;
+import com.mwt.service.task.EnduringTaskService;
 import com.mwt.service.task.LeaderService;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -14,6 +15,9 @@ import javax.annotation.Resource;
 public class LeaderServiceImpl implements LeaderService {
 
     private static final String LEADER_COLLECTION = "leader";
+
+    @Resource
+    private EnduringTaskService enduringTaskService;
 
     @Resource
     private MongoTemplate mongoTemplate;
@@ -30,6 +34,7 @@ public class LeaderServiceImpl implements LeaderService {
         Query query = Query.query(Criteria.where("leaderId").is(leaderId));
         Update update = new Update().set("status", status);
         mongoTemplate.updateFirst(query, update, LEADER_COLLECTION);
+        enduringTaskService.disband(leaderId);
     }
 
     @Override

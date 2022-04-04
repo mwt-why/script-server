@@ -446,6 +446,20 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
         return 9;   //表示是一个队员
     }
 
+    /**
+     * 解散组好的队伍
+     *
+     * @param leaderId
+     */
+    @Override
+    public void disband(String leaderId) {
+        List<String> members = leadersCache.get(leaderId);
+        if (Objects.nonNull(members) && !members.isEmpty()) {
+            teamQueue.removeAll(members);
+            leadersCache.remove(leaderId);
+        }
+    }
+
     @Override
     public void add(EnduringTask bean) {
 

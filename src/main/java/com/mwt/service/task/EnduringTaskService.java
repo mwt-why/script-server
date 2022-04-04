@@ -44,4 +44,5 @@ public interface EnduringTaskService extends IService<EnduringTask> {
 
     long teamUp(String id);
 
+    void disband(String leaderId);
 }
