@@ -25,6 +25,12 @@ public class EnduringTaskController {
         return ApiUtil.success(enduringTask.list(PageRequest.of(page - 1, size, Sort.by("deviceId"))));
     }
 
+    @GetMapping("/reset")
+    public Object reset(@RequestParam String id) {
+        enduringTask.reset(id);
+        return ApiUtil.success();
+    }
+
     @GetMapping("/getEnduringTaskDeviceId")
     public Object getEnduringTask(@RequestParam String deviceId) {
         EnduringTask task = enduringTask.getTask(deviceId);

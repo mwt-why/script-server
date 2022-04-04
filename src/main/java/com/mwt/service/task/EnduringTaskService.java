@@ -10,6 +10,8 @@ import java.util.List;
 
 public interface EnduringTaskService extends IService<EnduringTask> {
 
+    void reset(String id);
+
     int registerDevice(Device device);
 
     int checkDevice(String serial);

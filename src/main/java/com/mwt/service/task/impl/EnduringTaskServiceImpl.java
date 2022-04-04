@@ -55,7 +55,7 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
     /**
      * 同意好友之后的反馈，为了删除team里面的数据
      */
-    private Map<String, Integer> reportCache = new ConcurrentHashMap<>();
+    private Map<String, Set<String>> reportCache = new ConcurrentHashMap<>();
 
     @Override
     public int registerDevice(Device device) {
@@ -78,6 +78,9 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
     @Transactional
     public synchronized EnduringTask createTask(String deviceId) {
         List<TaskAccount> taskAccounts = listAvailableAccount(1);
+        if (Objects.isNull(taskAccounts) || taskAccounts.isEmpty()) {
+            return null;
+        }
         EnduringTask immature = EnduringTask.builder().
                 status(0).
                 deviceId(deviceId).
@@ -134,11 +137,17 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
         return result.getModifiedCount();
     }
 
-
     public long updateAccount(String id, int accountIndex, String key, Object value) {
+        return updateAccount(id, accountIndex, key, value, false);
+    }
+
+    public long updateAccount(String id, int accountIndex, String key, Object value, boolean unset) {
         Query query = new Query(Criteria.where("_id").is(id));
         String filter = "accountBeans." + accountIndex + "." + key;
         Update update = new Update().set(filter, value);
+        if (unset) {
+            update.unset(key);
+        }
         UpdateResult result = mongoTemplate.updateFirst(query, update, ENDURING_TASK_COLLECTION);
         return result.getModifiedCount();
     }
@@ -198,6 +207,7 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
             return 9;   //当前任务还没不能执行脚本任务
         }
         resetAccountRole(id);
+        tagCurAccountIsDo(id);
         SimpleMap simpleMap = new SimpleMap();
         simpleMap.put("status", 1);
         return updateTask(id, simpleMap);
@@ -332,7 +342,7 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
             tmpTeam.add(iterator.next());
         }
         team.put(leader, tmpTeam);
-        reportCache.put(leader, 0);
+        reportCache.put(leader, new HashSet<>());
         return leader;
     }
 
@@ -374,9 +384,9 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
             //记录反馈，所有添加或同意完毕就干掉添加好友的相关缓存
             for (String f : friends) {
                 if (f.equals(id)) {
-                    Integer size = reportCache.get(key);
-                    size++;
-                    reportCache.put(key, size);
+                    Set<String> members = reportCache.get(key);
+                    members.add(id);
+                    reportCache.put(key, members);
                     checkForClearCache(key);
                     return 1;
                 }
@@ -387,8 +397,8 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
 
     private void checkForClearCache(String leaderId) {
         List<String> t = team.get(leaderId);
-        Integer count = reportCache.get(leaderId);
-        if (count >= t.size()) {    //说明添加好友完毕
+        Set<String> members = reportCache.get(leaderId);
+        if (members.size() >= t.size()) {    //说明添加好友完毕
             reportCache.remove(leaderId);
             team.remove(leaderId);
         }
@@ -454,5 +464,24 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
     @Override
     public Page<EnduringTask> list(Pageable pageable) {
         return enduringTaskRepository.findAll(pageable);
+    }
+
+    /**
+     * 这个接口主要是把任务重置到刚创建的那个状态
+     *
+     * @param id
+     */
+    @Override
+    public void reset(String id) {
+        EnduringTask enduringTask = getEnduringTaskById(id);
+        List<TaskAccount> accountBeans = enduringTask.getAccountBeans();
+        if (Objects.nonNull(accountBeans) && !accountBeans.isEmpty()) {
+            for (int i = 0; i < accountBeans.size(); i++) {
+                updateAccount(id, i, "roles", "", true);
+            }
+        }
+        SimpleMap<Integer> simpleMap = new SimpleMap<>();
+        simpleMap.put("status", 0);
+        updateTask(id, simpleMap);
     }
 }
