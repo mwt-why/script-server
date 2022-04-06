@@ -6,4 +6,8 @@ import org.springframework.data.domain.Pageable;
 
 public interface DeviceService {
     Page<Device> list(Pageable pageable);
+
+    int save(Device device);
+
+    int check(String serial);
 }

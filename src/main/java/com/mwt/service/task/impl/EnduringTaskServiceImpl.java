@@ -1,14 +1,11 @@
 package com.mwt.service.task.impl;
 
 import com.mongodb.client.result.UpdateResult;
-import com.mwt.beans.comm.DevSeq;
 import com.mwt.beans.comm.SimpleMap;
 import com.mwt.beans.res.Account;
-import com.mwt.beans.res.Device;
 import com.mwt.beans.res.Role;
 import com.mwt.beans.task.EnduringTask;
 import com.mwt.beans.task.TaskAccount;
-import com.mwt.repository.AutoIdGenerator;
 import com.mwt.repository.task.EnduringTaskRepository;
 import com.mwt.service.task.EnduringTaskService;
 import org.springframework.beans.BeanUtils;
@@ -37,9 +34,6 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
     private MongoTemplate mongoTemplate;
 
     @Resource
-    private AutoIdGenerator autoIdGenerator;
-
-    @Resource
     private EnduringTaskRepository enduringTaskRepository;
 
     /**
@@ -56,24 +50,6 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
      * 同意好友之后的反馈，为了删除team里面的数据
      */
     private Map<String, Set<String>> reportCache = new ConcurrentHashMap<>();
-
-    @Override
-    public int registerDevice(Device device) {
-        int nextSeq = autoIdGenerator.getNextSeq(DevSeq.class);
-        device.setId(nextSeq);
-        device.setLastUpdateTime(LocalDateTime.now());
-        mongoTemplate.save(device);
-        return nextSeq;
-    }
-
-    @Override
-    public int checkDevice(String serial) {
-        Device device = mongoTemplate.findOne(Query.query(Criteria.where("serial").is(serial)), Device.class);
-        if (Objects.nonNull(device)) {
-            return device.getId();
-        }
-        return 0;
-    }
 
     @Transactional
     public synchronized EnduringTask createTask(String deviceId) {
@@ -198,6 +174,7 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
         updateCurRole(id, simpleMap);
         return updateCurAccount(id, simpleMap);
     }
+
 
     @Override
     public long begin(String id) {

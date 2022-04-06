@@ -102,18 +102,6 @@ public class EnduringTaskController {
         return ApiUtil.success(result);
     }
 
-    @PutMapping("/device")
-    public Object registerDevice(@RequestBody Device device) {
-        int deviceId = enduringTask.registerDevice(device);
-        return ApiUtil.success(deviceId);
-    }
-
-    @GetMapping("/device")
-    public Object checkDevice(@RequestParam String serial) {
-        int deviceId = enduringTask.checkDevice(serial);
-        return ApiUtil.success(deviceId);
-    }
-
     @PutMapping("/{id}/account")
     public Object updateCurAccount(@PathVariable String id,
                                    @RequestBody SimpleMap simpleMap) {

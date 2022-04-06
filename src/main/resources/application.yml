@@ -2,4 +2,4 @@ spring:
   application:
     name: mwt-script
   profiles:
-    active: prod
+    active: dev
