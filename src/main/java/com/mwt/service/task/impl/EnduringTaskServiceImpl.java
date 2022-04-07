@@ -51,9 +51,14 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
      */
     private Map<String, Set<String>> reportCache = new ConcurrentHashMap<>();
 
+
+    private int getNeedAccountCount() {
+        return 3;
+    }
+
     @Transactional
     public synchronized EnduringTask createTask(String deviceId) {
-        List<TaskAccount> taskAccounts = listAvailableAccount(1);
+        List<TaskAccount> taskAccounts = listAvailableAccount(getNeedAccountCount());
         if (Objects.isNull(taskAccounts) || taskAccounts.isEmpty()) {
             return null;
         }
@@ -167,8 +172,7 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
         return accountCount;
     }
 
-    @Override
-    public long tagCurAccountIsDo(String id) {
+    private long tagCurAccountIsDo(String id) {
         SimpleMap simpleMap = new SimpleMap();
         simpleMap.put("status", 1);
         updateCurRole(id, simpleMap);

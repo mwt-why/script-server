@@ -19,8 +19,6 @@ public interface EnduringTaskService extends IService<EnduringTask> {
 
     long resetAccountRole(String id);
 
-    long tagCurAccountIsDo(String id);
-
     long begin(String id);
 
     long finish(String id);

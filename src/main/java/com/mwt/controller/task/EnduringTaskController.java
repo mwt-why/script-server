@@ -60,12 +60,6 @@ public class EnduringTaskController {
         return ApiUtil.success(result);
     }
 
-    @GetMapping("/tagCurAccountIsDo")
-    public Object tagCurAccountIsDo(@RequestParam String id) {
-        long result = enduringTask.tagCurAccountIsDo(id);
-        return ApiUtil.success(result);
-    }
-
     @GetMapping("/addFriends")
     public Object addFriends(@RequestParam String id) {
         List<String> friends = enduringTask.addFriends(id);
