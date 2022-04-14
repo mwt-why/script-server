@@ -27,6 +27,11 @@ public class EnduringTask extends BaseBean {
     private int status;
 
     /**
+     * 是否是队长任务
+     */
+    private Boolean isLeader;
+
+    /**
      * 设备id
      */
     private String deviceId;

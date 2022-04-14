@@ -73,4 +73,26 @@ public final class DbUtil {
     public static Query getQuery(String key, String value) {
         return Query.query(Criteria.where(key).is(value));
     }
+
+    public static Query getSimpleQuery(Object o) {
+        BeanWrapper beanWrapper = PropertyAccessorFactory.forBeanPropertyAccess(o);
+        PropertyDescriptor[] propertyDescriptors = beanWrapper.getPropertyDescriptors();
+        Criteria criteria = new Criteria();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            String name = pd.getName();
+            //排除class属性
+            if (CLASS_PROPERTY_NAME.equals(name)) {
+                continue;
+            }
+            Object value = beanWrapper.getPropertyValue(name);
+            //排除null和空字符串
+            if (Objects.isNull(value) ||
+                    (value instanceof String && StringUtils.isBlank(value.toString()))) {
+                continue;
+            }
+
+        }
+        return new Query(criteria);
+    }
+
 }

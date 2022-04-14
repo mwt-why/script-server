@@ -5,6 +5,7 @@ import com.mwt.beans.res.Device;
 import com.mwt.beans.task.EnduringTask;
 import com.mwt.result.ApiUtil;
 import com.mwt.service.task.EnduringTaskService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -15,6 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping(value = "/enduringTask")
+@Slf4j
 public class EnduringTaskController {
 
     @Resource
@@ -60,27 +62,30 @@ public class EnduringTaskController {
         return ApiUtil.success(result);
     }
 
-    @GetMapping("/addFriends")
+    @GetMapping("/addFriend")
     public Object addFriends(@RequestParam String id) {
-        List<String> friends = enduringTask.addFriends(id);
+        List<String> friends = enduringTask.addFriend(id);
         return ApiUtil.success(friends);
+    }
+
+    @GetMapping("/reportAddFriend")
+    public Object reportAddFriend(@RequestParam("id") String id,
+                                  @RequestParam("leaderId") String leaderId) {
+        log.info("任务:" + id + "反馈添加好友完毕");
+        enduringTask.reportAddFriend(leaderId, id);
+        return ApiUtil.success();
+    }
+
+    @GetMapping("/checkLeaderAddFriendOver")
+    public Object checkLeaderAddFriendOver(@RequestParam("id") String id,
+                                           @RequestParam("leaderId") String leaderId) {
+        log.info("任务:" + id + "检查队长是否添加好友完毕");
+        return ApiUtil.success(enduringTask.checkLeaderAddFriendOver(leaderId));
     }
 
     @GetMapping("/teamUp")
     public Object teamUp(@RequestParam String id) {
         return ApiUtil.success(enduringTask.teamUp(id));
-    }
-
-    @GetMapping("/checkLeaderAddFriendOver")
-    public Object checkLeaderAddFriendOver(@RequestParam String leaderId) {
-        boolean flag = enduringTask.checkLeaderAddFriendOver(leaderId);
-        return ApiUtil.success(flag);
-    }
-
-    @GetMapping("/reportAddFriend")
-    public Object reportAddFriend(@RequestParam String id) {
-        long result = enduringTask.reportAddFriend(id);
-        return ApiUtil.success(result);
     }
 
     @GetMapping("/{id}")

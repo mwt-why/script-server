@@ -29,13 +29,13 @@ public interface EnduringTaskService extends IService<EnduringTask> {
 
     long updateCurRole(String id, SimpleMap simpleMap);
 
-    List<String> addFriends(String id);
-
-    boolean checkLeaderAddFriendOver(String leaderId);
-
-    long reportAddFriend(String id);
-
     long teamUp(String id);
 
     void disband(String leaderId);
+
+    List<String> addFriend(String id);
+
+    void reportAddFriend(String leaderId, String selfId);
+
+    boolean checkLeaderAddFriendOver(String leaderId);
 }

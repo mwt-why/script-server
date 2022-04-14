@@ -7,6 +7,7 @@ import com.mwt.beans.res.Role;
 import com.mwt.beans.task.EnduringTask;
 import com.mwt.beans.task.TaskAccount;
 import com.mwt.repository.task.EnduringTaskRepository;
+import com.mwt.service.common.TempService;
 import com.mwt.service.task.EnduringTaskService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
@@ -28,7 +29,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Service
 public class EnduringTaskServiceImpl implements EnduringTaskService {
 
-    private static final String ENDURING_TASK_COLLECTION = "enduringTask";
+    private static final String COLLECTION_NAME = "enduringTask";
 
     @Resource
     private MongoTemplate mongoTemplate;
@@ -36,21 +37,8 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
     @Resource
     private EnduringTaskRepository enduringTaskRepository;
 
-    /**
-     * 添加好友的任务队列
-     */
-    private Queue<String> addFriendsTaskQueue = new LinkedBlockingQueue<>();
-
-    /**
-     * 组队map,key是要加好友的任务id
-     */
-    private Map<String, List<String>> team = new ConcurrentHashMap<>();
-
-    /**
-     * 同意好友之后的反馈，为了删除team里面的数据
-     */
-    private Map<String, Set<String>> reportCache = new ConcurrentHashMap<>();
-
+    @Resource
+    private TempService tempService;
 
     private int getNeedAccountCount() {
         return 3;
@@ -112,9 +100,13 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
 
     @Override
     public long updateTask(String id, SimpleMap simpleMap) {
+        return updateTask(id, simpleMap.getKey(), simpleMap.getValue());
+    }
+
+    public long updateTask(String id, String key, Object value) {
         Query query = new Query(Criteria.where("_id").is(id));
-        Update update = new Update().set(simpleMap.getKey(), simpleMap.getValue());
-        UpdateResult result = mongoTemplate.updateFirst(query, update, ENDURING_TASK_COLLECTION);
+        Update update = new Update().set(key, value);
+        UpdateResult result = mongoTemplate.updateFirst(query, update, COLLECTION_NAME);
         return result.getModifiedCount();
     }
 
@@ -129,7 +121,7 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
         if (unset) {
             update.unset(key);
         }
-        UpdateResult result = mongoTemplate.updateFirst(query, update, ENDURING_TASK_COLLECTION);
+        UpdateResult result = mongoTemplate.updateFirst(query, update, COLLECTION_NAME);
         return result.getModifiedCount();
     }
 
@@ -143,7 +135,7 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
         Query query = new Query(Criteria.where("_id").is(id));
         String filter = "accountBeans." + accountIndex + ".roles." + roleIndex + "." + key;
         Update update = new Update().set(filter, value);
-        UpdateResult result = mongoTemplate.updateFirst(query, update, ENDURING_TASK_COLLECTION);
+        UpdateResult result = mongoTemplate.updateFirst(query, update, COLLECTION_NAME);
         return result.getModifiedCount();
     }
 
@@ -261,128 +253,106 @@ public class EnduringTaskServiceImpl implements EnduringTaskService {
         throw new RuntimeException("当前账号不在该任务中");
     }
 
+    private int getFriendCount() {
+        return 3;
+    }
+
     /**
      * 添加好友
      *
      * @return
      */
     @Override
-    public synchronized List<String> addFriends(String id) {
-        List<String> leaderOrMember = getTeamMember(id);
-        if (!leaderOrMember.isEmpty())
-            return leaderOrMember;
-        //判断该任务是否已经添加到待组队任务队列中了
-        if (addFriendsTaskQueue.contains(id)) {
-            return Collections.EMPTY_LIST;
+    @Transactional
+    public synchronized List<String> addFriend(String id) {
+        EnduringTask task = getEnduringTaskById(id);
+        List<String> existFriends = task.getFriends();
+        //说明还没有分配可添加的好友
+        if (Objects.isNull(existFriends) || existFriends.isEmpty()) {
+            List<EnduringTask> friends = findFriends(getFriendCount());
+            if (Objects.isNull(friends)) {
+                return null;
+            }
+            //队友拥有队长好友
+            List<String> friendIds = new ArrayList<>(friends.size());
+            for (EnduringTask et : friends) {
+                String fd = et.getId();
+                if (fd.equals(id))
+                    continue;
+                updateTask(fd, "friends", Arrays.asList(id));
+                updateTask(fd, "isLeader", false);
+                friendIds.add(fd);
+            }
+            //修改队长拥有的好友
+            updateTask(id, "friends", friendIds);
+            updateTask(id, "isLeader", true);
+            int result = tempService.save(id, false);
+            if (-1 == result) {
+                throw new RuntimeException("无法往temp中插入自定的key");
+            }
+            //给队长返回好友准备添加
+            return friendIds;
         }
-        addFriendsTaskQueue.add(id);
-        //如果任务队列满足了5个，那就可以开始加好友了
-        if (addFriendsTaskQueue.size() == 3) {
-            String leader = moveToTeam();
-            if (leader.equals(id))
-                return team.get(id);
-            else
-                return Arrays.asList(leader);
-        }
-        return Collections.EMPTY_LIST;
+        return existFriends;
     }
 
-    private List<String> getTeamMember(String id) {
-        if (team.size() == 0) {
-            return Collections.EMPTY_LIST;
+    public List<EnduringTask> findFriends(int friendCount) {
+        Query query = Query.query(Criteria.where("friends").exists(false));
+        List<EnduringTask> friends = mongoTemplate.find(query, EnduringTask.class);
+        if (Objects.isNull(friends) || friends.size() < friendCount) {
+            return null;
         }
-        Iterator<Map.Entry<String, List<String>>> iterator = team.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, List<String>> next = iterator.next();
-            String leader = next.getKey();
-            List<String> member = next.getValue();
-            //任务是添加好友的组长,返回队员
-            if (leader.equals(id)) {
-                return member;
-            }
-            //任务是队员返回队长
-            for (String v : member) {
-                if (v.equals(id)) {
-                    return Arrays.asList(leader);
-                }
-            }
-        }
-        return Collections.EMPTY_LIST;
+        return friends.subList(0, friendCount);
     }
+
+    private Map<String, Set<String>> forClearMap = new ConcurrentHashMap<>();
 
     /**
-     * 把满足添加好友的任务添加到team中
+     * 添加好友完毕反馈
      *
-     * @return 队长的id
+     * @param leaderId
+     * @param selfId
      */
-    private String moveToTeam() {
-        Iterator<String> iterator = addFriendsTaskQueue.iterator();
-        String leader = iterator.next();
-        List<String> tmpTeam = new ArrayList<>();
-        while (iterator.hasNext()) {
-            tmpTeam.add(iterator.next());
+    @Override
+    public void reportAddFriend(String leaderId, String selfId) {
+        //队长
+        if (leaderId.equals(selfId)) {
+            tempService.updateByKey(leaderId, true);
+        } else {
+            Set<String> members = forClearMap.get(leaderId);
+            if (Objects.isNull(members)) {
+                members = new HashSet<>();
+            }
+            members.add(selfId);
+            checkForClear(leaderId);
         }
-        team.put(leader, tmpTeam);
-        reportCache.put(leader, new HashSet<>());
-        return leader;
+    }
+
+    private void checkForClear(String leaderId) {
+        EnduringTask enduringTask = getEnduringTaskById(leaderId);
+        List<String> friends = enduringTask.getFriends();
+        if (Objects.isNull(friends) || friends.isEmpty()) {
+            throw new IllegalArgumentException("该任务还没添加好友，不存在好友反馈");
+        }
+        Set<String> members = forClearMap.get(leaderId);
+        //开始清理临时表，和forClearMap
+        if (friends.contains(members)) {
+            //清除队长的是否添加好友完毕状态
+            tempService.delete(leaderId);
+            //清除上面的记录缓存
+            forClearMap.remove(leaderId);
+        }
     }
 
     /**
-     * 检测队长是否已经添加完毕好友
+     * 检查队长添加好友是否完毕
      *
      * @param leaderId
      * @return
      */
     @Override
     public boolean checkLeaderAddFriendOver(String leaderId) {
-        EnduringTask enduringTask = enduringTaskRepository.findById(leaderId).get();
-        List<String> friends = enduringTask.getFriends();
-        if (Objects.isNull(friends) || friends.isEmpty()) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * 这里的添加有可能是添加好友，也有可能是好友同意的请求
-     */
-    @Override
-    public long reportAddFriend(String id) {
-        Iterator<Map.Entry<String, List<String>>> iterator = team.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, List<String>> next = iterator.next();
-            String key = next.getKey();
-            List<String> friends = next.getValue();
-            SimpleMap simpleMap = new SimpleMap();
-            //队长反馈的好友添加完毕，需要把所有好友添加到好友列表中
-            if (key.equals(id)) {
-                simpleMap.put("friends", friends);
-                return updateTask(id, simpleMap);
-            } else {
-                simpleMap.put("friends", Arrays.asList(key));
-                updateTask(id, simpleMap);
-            }
-            //记录反馈，所有添加或同意完毕就干掉添加好友的相关缓存
-            for (String f : friends) {
-                if (f.equals(id)) {
-                    Set<String> members = reportCache.get(key);
-                    members.add(id);
-                    reportCache.put(key, members);
-                    checkForClearCache(key);
-                    return 1;
-                }
-            }
-        }
-        return 0;
-    }
-
-    private void checkForClearCache(String leaderId) {
-        List<String> t = team.get(leaderId);
-        Set<String> members = reportCache.get(leaderId);
-        if (members.size() >= t.size()) {    //说明添加好友完毕
-            reportCache.remove(leaderId);
-            team.remove(leaderId);
-        }
+        return (boolean) tempService.getByKey(leaderId);
     }
 
     private Queue<String> teamQueue = new LinkedBlockingQueue<>();
