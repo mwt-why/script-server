@@ -70,7 +70,7 @@ public final class DbUtil {
         return getQuery("_id", id);
     }
 
-    public static Query getQuery(String key, String value) {
+    public static Query getQuery(String key, Object value) {
         return Query.query(Criteria.where(key).is(value));
     }
 
